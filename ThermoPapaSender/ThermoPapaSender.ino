@@ -39,8 +39,7 @@ int cpt;
 
 
 // Wi-Fi connection parameters
-const char * wifi_ssid = "Freebox-manu";
-const char * wifi_password = "nugor5-subduxi-factitando37-indemne";
+
 
 
 void setup() { 
