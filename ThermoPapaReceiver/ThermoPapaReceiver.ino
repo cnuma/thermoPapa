@@ -217,7 +217,23 @@ void setup() {
 
   } else {
 
-    tftPrintMsg(120, 220, F("Init Objets"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
+    int yPosSetup = 200;
+    tftPrintMsg(120, yPosSetup, F("Init Objets"), 1, ILI9341_CYAN, &FreeSans9pt7b);
+    yPosSetup += 20;
+    tftPrintMsg(120, yPosSetup, F("Init LORA:"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
+    yPosSetup += 20;
+    tftPrintMsg(120, yPosSetup, F("Init WIFI"), 1, ILI9341_PINK, &FreeSans9pt7b);
+    yPosSetup += 20;
+    tftPrintMsg(120, yPosSetup, F("Init NTP"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
+
+    delay(800);
+    
+    
+    yPosSetup = 200;
+
+    // *******************************************************************************************************************
+    // ***************************************************************************************************** Init Objets
+
     // ****************************************** TEMPERATURE **********************
     temperature.SetPosition(xTemperature, yTemperature);
     temperature.SetBGColor(ILI9341_DARKCYAN);
@@ -236,42 +252,44 @@ void setup() {
     humidite.SetUnit(" %");
     humidite.SetMinMax(0, 100);
 
-    tftPrintMsg(200, 220, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
+    tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
+    delay(500);
 
 
-
-
-    tftPrintMsg(120, 240, F("Init LORA:"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
+    // *******************************************************************************************************************
+    // ***************************************************************************************************** Init LORA
+    yPosSetup += 20;
     while (!Serial);
     Serial.println("LoRa Receiver");
     LoRa.setPins(LoraNss, LoraReset, dio0);
 
       if (!LoRa.begin(433E6)) {
       Serial.println("Starting LoRa failed!");
-      tftPrintMsg(200, 240, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
+      tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
       delay(100);
       while (1);
     } else {
       Serial.println("Starting LoRa module OK!");
-      tftPrintMsg(200, 240, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
+      tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
       Serial.println("LoRa Receiver mode");
       LoRa.receive();
     }
+    delay(500);
 
     // register the receive callback
     //LoRa.onReceive(onReceive);
   
     // put the radio into receive mode
     
-
-    
-    tftPrintMsg(120, 260, F("Init WIFI"), 1, ILI9341_PINK, &FreeSans9pt7b);
+    // *******************************************************************************************************************
+    // ***************************************************************************************************** Init WIFI
+    yPosSetup += 20;
     Serial.printf("Connecting to '%s'\n", wifi_ssid);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifi_ssid, wifi_password);
     if (WiFi.waitForConnectResult() == WL_CONNECTED) {
-      tftPrintMsg(200, 260, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
+      tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
       Serial.print("Connected. IP: ");
       Serial.println(WiFi.localIP());
       ArduinoOTA.setHostname("ThemoPapa-ModuleAffichage");
@@ -279,23 +297,29 @@ void setup() {
       ArduinoOTA.begin();
     } else {
       Serial.println("Connection Failed!");
-      tftPrintMsg(200, 260, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
+      tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
     }
+    delay(500);
 
-    // ********************************************** NTP ***************
-    tftPrintMsg(120, 280, F("Init NTP"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
+
+    // *******************************************************************************************************************
+    // ***************************************************************************************************** Init NTP 
+    yPosSetup += 20; 
     timeClient.begin();
     delay ( 1000 );
     if (timeClient.update()){
       Serial.print ( "Adjust local clock" );
+      tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
       unsigned long epoch = timeClient.getEpochTime();
       setTime(epoch);
     }else{
       Serial.print ( "NTP Update not WORK!!" );
-      tftPrintMsg(200, 280, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
+      tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
     }
+    delay(500);
+    
 
-    tftPrintMsg(120, 320, F("Fin setup"), 1, ILI9341_WHITE, &FreeSans9pt7b);
+    tftPrintMsg(120, 310, F("Fin setup"), 1, ILI9341_WHITE, &FreeSans9pt7b);
     delay(5000);
     tft.fillScreen(ILI9341_BLACK);
 
