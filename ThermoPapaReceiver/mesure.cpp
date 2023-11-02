@@ -62,7 +62,7 @@ void mesure::AddHistoryValue(float value){
 
 
 
-void mesure::Tendance(int val, int previousVal, int xPos, int, yPos) {
+void mesure::Tendance(int val, int previousVal, int xPos, int yPos) {
 
   #define tailleTendance 20
   int refxPos = xPos + NbrPointsHistoriqueMesure + 2;
@@ -74,9 +74,9 @@ void mesure::Tendance(int val, int previousVal, int xPos, int, yPos) {
   if (val == previousVal) {
     m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_YELLOW);
   } else if (val < previousVal) {
-    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_YELLOW);
+    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_BLUE);
   } else {
-    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_YELLOW);
+    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_RED);
   }
 
 

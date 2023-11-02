@@ -41,7 +41,7 @@ class mesure {
 
       void AddHistoryValue(float lastValue);
 
-      void Tendance();
+      void Tendance(int val, int previousVal, int xPos, int yPos);
 
 
 
