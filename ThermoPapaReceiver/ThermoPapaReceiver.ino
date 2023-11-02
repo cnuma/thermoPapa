@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
-*
+*         - 2023/11/02  - mise en place du repo sur Github
 * - V0.3  - 2023/10/31  - connexion au site XML des données de météo France et parse du contenu du site.
 * - V0.2  - 2023/10/31  - correction de l'affichage des graph; erreur des points 0 de référence - ajout des données RSSI et SNR on top de l'afficheur  
 * - V0.1  - 2023/10/06  - Ajout gestion de l'écran et création de la classe mesure
