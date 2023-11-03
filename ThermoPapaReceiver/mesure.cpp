@@ -64,7 +64,8 @@ void mesure::AddHistoryValue(float value){
 
 void mesure::Tendance(int val, int previousVal, int xPos, int yPos) {
 
-  #define tailleTendance 20
+  #define tailleTendance 20 // *** nombre de pixels pour le carré d'affichage de la tendance ***
+
   int refxPos = xPos + NbrPointsHistoriqueMesure + 2;
   int refyPos = yPos - (m_GraphHeight/2) + 10 ;
   
@@ -72,11 +73,13 @@ void mesure::Tendance(int val, int previousVal, int xPos, int yPos) {
   m_tft.fillRect(refxPos, refyPos, tailleTendance, tailleTendance, ILI9341_DARKGREY);
 
   if (val == previousVal) {
-    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_YELLOW);
+    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos , ILI9341_YELLOW);
+    m_tft.drawLine(refxPos, refyPos - 1 - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos , ILI9341_YELLOW);
+    m_tft.drawLine(refxPos, refyPos + 1 - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos , ILI9341_YELLOW);
   } else if (val < previousVal) {
-    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_BLUE);
+    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos + tailleTendance, ILI9341_BLUE);
   } else {
-    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - (tailleTendance / 2 ), ILI9341_RED);
+    m_tft.drawLine(refxPos, refyPos - (tailleTendance / 2 ), refxPos + (tailleTendance/2), refyPos - tailleTendance , ILI9341_RED);
   }
 
 

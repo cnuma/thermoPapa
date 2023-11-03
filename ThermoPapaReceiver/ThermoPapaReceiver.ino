@@ -10,10 +10,14 @@
 *********************************************************************************************************************/
 
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+
 #include <ArduinoOTA.h>
+
 #include <SPI.h>
 #include <LoRa.h>
 #include <Wire.h>
+
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include <Fonts/FreeMonoBold18pt7b.h>
@@ -28,21 +32,12 @@
 
 #include <EEPROM.h>
 
-
 #include <WiFiClientSecure.h>
+
 
 #include "mesure.h"
 
 
-
-// Wi-Fi connection parameters
-#define EEPROM_SIZE 80 // *** 2 blocs de 40 caractères pour le SSI et le PWD associé ***
-bool gp3=0;
-WiFiServer server(80);
-//const char * wifi_ssid = "Freebox-manu"; 12
-//const char * wifi_password = "nugor5-subduxi-factitando37-indemne";35
-String wifi_ssid;
-String wifi_password;
 
 // Var pour client NTP 
 const long utcOffsetInSeconds = 3600;
@@ -113,6 +108,28 @@ mesure pression     = mesure();
 mesure temperature  = mesure();
 mesure humidite     = mesure();
 
+
+// *** Défintion du serveur associé à GP3 *****
+#include "pageContact.h"
+#include "pageWifiParam.h"
+
+IPAddress local_IP(192,168,10,254);
+IPAddress subnet(255,255,255,0);
+
+#define EEPROM_SIZE 80 // *** 2 blocs de 40 caractères pour le SSI et le PWD associé ***
+
+bool gp3=0;
+
+ESP8266WebServer server(80);
+
+//const char * wifi_ssid = "Freebox-manu"; 12
+//const char * wifi_password = "nugor5-subduxi-factitando37-indemne";35
+String wifi_ssid;
+String wifi_password;
+
+
+
+
 /**
  * Input time in epoch format and return tm time format
  * by Renzo Mischianti <www.mischianti.org> 
@@ -149,7 +166,7 @@ static String getEpochStringByParams(long time, char* pattern = (char *)"%d/%m/%
 void tftPrintMsg(int xPos, int yPos, String chaine, uint8_t texteTaille, uint16_t texteCouleur, const GFXfont *f) {
     tft.setTextColor(texteCouleur);  
     tft.setFont(f);
-    tft.setTextSize(1);
+    tft.setTextSize(texteTaille);
     tft.getTextBounds(chaine, 0, 0, &gbx1, &gby1, &gbw, &gbh);
     tft.setCursor(xPos - (gbw/2), yPos);
     tft.println(chaine);
@@ -207,16 +224,31 @@ void setup() {
     tft.setCursor(120 - (gbw/2), 180);
     tft.println(F("* Wifi setup *"));
     */
+
+    WiFi.mode(WIFI_AP); //Our ESP8266-12E is an AccessPoint
+    WiFi.softAP("Hello_cNuma", "12345678"); // Provide the (SSID, password);
+
     tftPrintMsg(120, 200, F("*** Wifi setup ***"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
     tftPrintMsg(120, 240, F("Attente config !"), 1, ILI9341_WHITE, &FreeSans9pt7b);
     tftPrintMsg(120, 260, F("SSID: Hello_cNuma"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
+    tftPrintMsg(120, 280, F("pwd: 12345678"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
+    
+    server.on("/", [] {server.send(200, "text/html", pageWifiParam);} );
+    server.on("/contact", [] {server.send(200, "text/html", pageContact);} );
 
-    WiFi.mode(WIFI_AP); //Our ESP8266-12E is an AccessPoint
-    WiFi.softAP("Hello_cNuma", "12345678"); // Provide the (SSID, password); .
-    server.begin(); // Start the HTTP Server 
+    server.begin(); // Start the HTTP Server
+    
+
 
   } else {
+    // *************************************************************************************************
+    // *************************************************************************************************
+    // ************************************************** Démarrage NORMAL *****************************
+    // *************************************************************************************************
 
+
+    // *******************************************************************************************************************
+    // ********************************************************************************************** Affichage checks 
     int yPosSetup = 200;
     tftPrintMsg(120, yPosSetup, F("Init Objets"), 1, ILI9341_CYAN, &FreeSans9pt7b);
     yPosSetup += 20;
@@ -229,10 +261,11 @@ void setup() {
     delay(800);
     
     
-    yPosSetup = 200;
+
 
     // *******************************************************************************************************************
     // ***************************************************************************************************** Init Objets
+    yPosSetup = 200;
 
     // ****************************************** TEMPERATURE **********************
     temperature.SetPosition(xTemperature, yTemperature);
@@ -290,8 +323,8 @@ void setup() {
     WiFi.begin(wifi_ssid, wifi_password);
     if (WiFi.waitForConnectResult() == WL_CONNECTED) {
       tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
-      Serial.print("Connected. IP: ");
-      Serial.println(WiFi.localIP());
+      //Serial.print("Connected. IP: ");
+      //Serial.println(WiFi.localIP());
       ArduinoOTA.setHostname("ThemoPapa-ModuleAffichage");
       ArduinoOTA.setPassword("123456");
       ArduinoOTA.begin();
@@ -317,7 +350,7 @@ void setup() {
       tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
     }
     delay(500);
-    
+
 
     tftPrintMsg(120, 310, F("Fin setup"), 1, ILI9341_WHITE, &FreeSans9pt7b);
     delay(5000);
@@ -334,167 +367,178 @@ void setup() {
 
 void loop(void) {
 
-  ArduinoOTA.handle();
-
-  //timeClient.update();
-  Serial.println("Time: " + getEpochStringByParams(CE.toLocal(now())));
-
-  // ***** Lecture des données de openMeteo ******
-  if (awaitingArrivals) {
-    if (!arrivalsRequested) {
-      arrivalsRequested = true;
-      getArrivals();
-    }
-  }
-
-  //Serial.println("Lora - ParsePaquet");
-  int tailleDuPaquet = LoRa.parsePacket(); 
-  entrant = "";
-
-  if (tailleDuPaquet) { 
-
-    Serial.println("taille du paquet: " + String(tailleDuPaquet));
-  
-    Serial.println("Lora - Lecture reception");
-    while (LoRa.available()) { 
-      entrant += (char)LoRa.read(); 
-    } 
-
-    Serial.print("=== LORA SIGNAL - RSSI: ");
-    Serial.print(LoRa.packetRssi()); // *** valeurs comprises entre -120dBm(weak) et -30dBm(strong)
-    Serial.print(" - SNR: ");
-    Serial.println(LoRa.packetSnr()); // *** valuers comprises entre -20dB et +10dB
+  if (gp3 == 1) {
+    // *************************************** MODE GP3 - CONFIG SSID Et PWD  *********
     
-
-    Serial.println("Entrant: " + entrant);
-
-    // **************************************** Detection d'une trame #cnuma### ***************************
-    if (entrant.indexOf("cnuma###") > 0) {
-
-      // ********************************************************************
-      // *** Affichage du niveau de réception du signal 
-      tft.fillRect(0, 0, 100, 20, ILI9341_BLACK);
-      tft.setFont(&Picopixel);
-
-      /*
-      => https://lora.readthedocs.io/en/latest/#rssi
+    server.handleClient();
 
 
-      RSSI:
-      -------------------------------------------------------
-      The RSSI is measured in dBm and is a negative value.
-      The closer to 0 the better the signal is.
-      Typical LoRa RSSI values are:
 
-      => RSSI minimum = -120 dBm.
+  } else {
 
-      If RSSI=-30dBm: signal is strong.
-      If RSSI=-120dBm: signal is weak.
-      
-      
-      SNR:
-      -------------------------------------------------------
-      Signal-to-Noise Ratio (SNR) is the ratio between the received power signal and the noise floor power level.
+    // *************************************** MODE NORMAL ****************************
+    ArduinoOTA.handle();
 
-      The noise floor is an area of all unwanted interfering signal sources which can corrupt the transmitted signal and therefore re-transmissions will occur.
+    //timeClient.update();
+    Serial.println("Time: " + getEpochStringByParams(CE.toLocal(now())));
 
-      If SNR is GREATER than 0, the received signal operates above the noise floor.
-      If SNR is SMALLER than 0, the received signal operates below the noise floor.
-
-      Normally the noise floor is the physical limit of sensitivity, however LoRa works below the noise level.
-
-      => Typical LoRa SNR values are between: -20dB and +10dB
-
-      A value closer to +10dB means the received signal is less corrupted.
-      LoRa can demodulate signals which are -7.5 dB to -20 dB below the noise floor.
-
-      */
-
-      // **** RSSI ****
-      tft.setCursor(5, 10);
-      tft.setTextSize(1);
-      int RSSI = map(LoRa.packetRssi(), -120, -30, 0, 100);
-      if (RSSI >= 61) {
-        tft.setTextColor(ILI9341_GREEN);
-      } else if ((RSSI >= 31) && (RSSI<=60)) {
-        tft.setTextColor(ILI9341_YELLOW);
-      } else if (RSSI <= 30) {
-        tft.setTextColor(ILI9341_RED);
+    // ***** Lecture des données de openMeteo ******
+    if (awaitingArrivals) {
+      if (!arrivalsRequested) {
+        arrivalsRequested = true;
+        getArrivals();
       }
-      tft.print("RSSI: " + String(RSSI) + " %");
+    }
 
+    //Serial.println("Lora - ParsePaquet");
+    int tailleDuPaquet = LoRa.parsePacket(); 
+    entrant = "";
 
-      // **** SNR ****
-      tft.setCursor(50, 10);
-      tft.setTextSize(1);
-      int SNR = map(LoRa.packetSnr(), -20, 10, 0, 100);
-      if (SNR >= 61) {
-        tft.setTextColor(ILI9341_GREEN);
-      } else if ((RSSI >= 31) && (RSSI<=60)) {
-        tft.setTextColor(ILI9341_YELLOW);
-      } else if (RSSI <= 30) {
-        tft.setTextColor(ILI9341_RED);
-      }
-      tft.print("SNR: " + String(SNR) + " %");
+    if (tailleDuPaquet) { 
 
-      String cpt = entrant.substring(9, entrant.indexOf("###",9));
+      Serial.println("taille du paquet: " + String(tailleDuPaquet));
+    
+      Serial.println("Lora - Lecture reception");
+      while (LoRa.available()) { 
+        entrant += (char)LoRa.read(); 
+      } 
 
-      if (compteurTrame != cpt.toInt()) {
-        Serial.println("## Nouvelle trame " + cpt + "- Traitement ...");
-        compteurTrame = cpt.toInt();
+      Serial.print("=== LORA SIGNAL - RSSI: ");
+      Serial.print(LoRa.packetRssi()); // *** valeurs comprises entre -120dBm(weak) et -30dBm(strong)
+      Serial.print(" - SNR: ");
+      Serial.println(LoRa.packetSnr()); // *** valuers comprises entre -20dB et +10dB
+      
 
-        tft.fillRect(280, 230, 100, 20, ILI9341_BLACK);
+      Serial.println("Entrant: " + entrant);
+
+      // **************************************** Detection d'une trame #cnuma### ***************************
+      if (entrant.indexOf("cnuma###") > 0) {
+
+        // ********************************************************************
+        // *** Affichage du niveau de réception du signal 
+        tft.fillRect(0, 0, 100, 20, ILI9341_BLACK);
         tft.setFont(&Picopixel);
-        tft.setCursor(280, 235);
-        tft.setTextColor(ILI9341_WHITE);  
+
+        /*
+        => https://lora.readthedocs.io/en/latest/#rssi
+
+
+        RSSI:
+        -------------------------------------------------------
+        The RSSI is measured in dBm and is a negative value.
+        The closer to 0 the better the signal is.
+        Typical LoRa RSSI values are:
+
+        => RSSI minimum = -120 dBm.
+
+        If RSSI=-30dBm: signal is strong.
+        If RSSI=-120dBm: signal is weak.
+        
+        
+        SNR:
+        -------------------------------------------------------
+        Signal-to-Noise Ratio (SNR) is the ratio between the received power signal and the noise floor power level.
+
+        The noise floor is an area of all unwanted interfering signal sources which can corrupt the transmitted signal and therefore re-transmissions will occur.
+
+        If SNR is GREATER than 0, the received signal operates above the noise floor.
+        If SNR is SMALLER than 0, the received signal operates below the noise floor.
+
+        Normally the noise floor is the physical limit of sensitivity, however LoRa works below the noise level.
+
+        => Typical LoRa SNR values are between: -20dB and +10dB
+
+        A value closer to +10dB means the received signal is less corrupted.
+        LoRa can demodulate signals which are -7.5 dB to -20 dB below the noise floor.
+
+        */
+
+        // **** RSSI ****
+        tft.setCursor(5, 10);
         tft.setTextSize(1);
-        tft.println(cpt);
+        int RSSI = map(LoRa.packetRssi(), -120, -30, 0, 100);
+        if (RSSI >= 61) {
+          tft.setTextColor(ILI9341_GREEN);
+        } else if ((RSSI >= 31) && (RSSI<=60)) {
+          tft.setTextColor(ILI9341_YELLOW);
+        } else if (RSSI <= 30) {
+          tft.setTextColor(ILI9341_RED);
+        }
+        tft.print("RSSI: " + String(RSSI) + " %");
 
-          // ****************************************** TEMPERATURE **********************
-        if (entrant.indexOf("Temperature") > 0) {
-          Serial.println("Affichage Temperature");
 
-          entrant = entrant.substring(entrant.indexOf("Temperature:")+12);
-          temperature.NewValue(entrant.toFloat());
+        // **** SNR ****
+        tft.setCursor(50, 10);
+        tft.setTextSize(1);
+        int SNR = map(LoRa.packetSnr(), -20, 10, 0, 100);
+        if (SNR >= 61) {
+          tft.setTextColor(ILI9341_GREEN);
+        } else if ((RSSI >= 31) && (RSSI<=60)) {
+          tft.setTextColor(ILI9341_YELLOW);
+        } else if (RSSI <= 30) {
+          tft.setTextColor(ILI9341_RED);
+        }
+        tft.print("SNR: " + String(SNR) + " %");
 
-          temperature.PrintLastValue();
-          temperature.GraphHistoryValue(xTemperature + 100, yTemperature + 20);
+        String cpt = entrant.substring(9, entrant.indexOf("###",9));
 
+        if (compteurTrame != cpt.toInt()) {
+          Serial.println("## Nouvelle trame " + cpt + "- Traitement ...");
+          compteurTrame = cpt.toInt();
+
+          tft.fillRect(280, 230, 100, 20, ILI9341_BLACK);
+          tft.setFont(&Picopixel);
+          tft.setCursor(280, 235);
+          tft.setTextColor(ILI9341_WHITE);  
+          tft.setTextSize(1);
+          tft.println(cpt);
+
+            // ****************************************** TEMPERATURE **********************
+          if (entrant.indexOf("Temperature") > 0) {
+            Serial.println("Affichage Temperature");
+
+            entrant = entrant.substring(entrant.indexOf("Temperature:")+12);
+            temperature.NewValue(entrant.toFloat());
+
+            temperature.PrintLastValue();
+            temperature.GraphHistoryValue(xTemperature + 100, yTemperature + 20);
+
+          }
+
+          // ****************************************** PRESSION **********************
+          if (entrant.indexOf("Pression") > 0) {
+            Serial.println("Affichage Pression");
+          
+            entrant = entrant.substring(entrant.indexOf("Pression:")+10);
+            pression.NewValue(entrant.toFloat());
+          
+            pression.PrintLastValue(); 
+            pression.GraphHistoryValue(xPression + 100, yPression + 20); 
+          }
+
+          // ****************************************** HUMIDITE **********************   
+          if (entrant.indexOf("Humidite") > 0) {
+            entrant = entrant.substring(entrant.indexOf("Humidite:")+10);
+            humidite.NewValue(entrant.toFloat());
+          
+            humidite.PrintLastValue();
+            humidite.GraphHistoryValue(xHumidite + 100, yHumidite + 20); 
+          }
+        } else {
+          Serial.println("MEME TRAME - compteurTrame: " + String(compteurTrame) + " - cpt: " + String(cpt));
         }
 
-        // ****************************************** PRESSION **********************
-        if (entrant.indexOf("Pression") > 0) {
-          Serial.println("Affichage Pression");
-        
-          entrant = entrant.substring(entrant.indexOf("Pression:")+10);
-          pression.NewValue(entrant.toFloat());
-        
-          pression.PrintLastValue(); 
-          pression.GraphHistoryValue(xPression + 100, yPression + 20); 
-        }
-
-        // ****************************************** HUMIDITE **********************   
-        if (entrant.indexOf("Humidite") > 0) {
-          entrant = entrant.substring(entrant.indexOf("Humidite:")+10);
-          humidite.NewValue(entrant.toFloat());
-        
-          humidite.PrintLastValue();
-          humidite.GraphHistoryValue(xHumidite + 100, yHumidite + 20); 
-        }
       } else {
-        Serial.println("MEME TRAME - compteurTrame: " + String(compteurTrame) + " - cpt: " + String(cpt));
+        Serial.println ("*** Pas une trame CNUMA !!!");
       }
 
-    } else {
-      Serial.println ("*** Pas une trame CNUMA !!!");
-    }
-
-    
-  } // *** Détection d'un paquet ***
+      
+    } // *** Détection d'un paquet ***
 
 
-  Serial.print(".");
-  delay(50);
+    Serial.print(".");
+    delay(50);
+  } // *** Else du GP3 - Fonctionnement NORMAL ! ***
 
 } // *** Loop ***
 
