@@ -180,29 +180,29 @@ void handleWifiSave() {
     return;
   }
 
-  int EepromAddr = 0;
+  
   int i;
 
+  Serial.println("Clear des zones de l EEPROM");
   // **** Reset les 80 positions de l'EEPROM avec des "0" ****
   for (i=0; i<=79; i++) {
-    EEPROM.put(i, 0);
+    EEPROM.write(i, 0);
   }
-
-  // **** Enregistrement du SSID dans l'EEPROM ****
-  Serial.println("ssid envoyé:" + server.arg("ssid"));
-
-  String returnField = server.arg("ssid");
-  int fieldSize = returnField.length();
-  Serial.println("Taille de SSID" + String(fieldSize));
-
-  for (i=1 ; i<=fieldSize; i++){
-    Serial.println("Ecriture: " + returnField.substring(i-1, i));
-    EEPROM.put(EepromAddr++, returnField.substring(i-1, i));
-  }
+  Serial.println("Commit !");
   EEPROM.commit();
 
 
-  
+  // **** Enregistrement du SSID dans l'EEPROM ****
+  String returnField;
+  Serial.println("ssid envoyé:" + server.arg("ssid"));
+  returnField = server.arg("ssid");
+  EEPROM.put(0, returnField);
+  EEPROM.commit();
+
+  Serial.println("pwd envoyé:" + server.arg("pwd"));
+  returnField = server.arg("pwd");
+  EEPROM.put(39, returnField);
+  EEPROM.commit();
 
   server.send(200, "text/html", "<h1>Parametres WIFI enregistres dans la ROM !</H1><P>Merci de relancer le module recepteur - <P><B>Methode:</B><BR>1) PowerOFF<BR>2) PowerOn");
 
@@ -351,14 +351,37 @@ void setup() {
     yPosSetup += 20;
    
     Serial.printf("Wifi - Récup valeur dans EEPROM\n");
-    char val;
-    for (int i=0; i<=40; i++) {
-      EEPROM.get(i, val);
-      Serial.println("Val EEPROM" + val);
-      wifi_ssid += val;
-    }
 
-    Serial.printf("Wifi - Connecting to '%s'\n", wifi_ssid);
+/*    
+    Serial.printf("Wifi - Récup SSID: ");
+    char val=-1;
+    int i=0;
+    while (i<=39 && val != 0) {
+      val = EEPROM.read(i);
+      Serial.println("i:" + String(i) + " - Val EEPROM :" + val);
+      wifi_ssid += val;
+      i++; 
+    }
+    Serial.println(wifi_ssid);
+
+
+    Serial.print("Wifi - Récup pwd: ");
+    val=-1;
+    i=40;
+    while (i<=79 && val != 0) {
+      val = EEPROM.read(i);
+      Serial.println("i:" + String(i) + " - Val EEPROM :" + val);
+      wifi_ssid += val;
+      i++; 
+    }
+    Serial.println(wifi_password);
+*/    
+
+
+    EEPROM.get(0, wifi_ssid);
+    //EEPROM.get(39, wifi_password);
+
+    Serial.printf("Wifi - Connecting to '%s' - '%s'\n", wifi_ssid, wifi_password);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifi_ssid, wifi_password);
