@@ -113,14 +113,15 @@ mesure humidite     = mesure();
 #include "pageContact.h"
 #include "pageWifiParam.h"
 
-IPAddress local_IP(192,168,10,254);
-IPAddress subnet(255,255,255,0);
-
 #define EEPROM_SIZE 80 // *** 2 blocs de 40 caractères pour le SSI et le PWD associé ***
 
 bool gp3=0;
 
 ESP8266WebServer server(80);
+
+
+
+
 
 //const char * wifi_ssid = "Freebox-manu"; 12
 //const char * wifi_password = "nugor5-subduxi-factitando37-indemne";35
@@ -173,6 +174,44 @@ void tftPrintMsg(int xPos, int yPos, String chaine, uint8_t texteTaille, uint16_
 }
 
 
+void handleWifiSave() {
+  if( ! server.hasArg("ssid") || ! server.hasArg("pwd") || server.arg("ssid") == NULL || server.arg("pwd") == NULL) {
+    server.send(400, "text/plain", "400: Invalid Request - parametre NULL ou manquant !");         // The request is invalid, so send HTTP status 400
+    return;
+  }
+
+  int EepromAddr = 0;
+  int i;
+
+  // **** Reset les 80 positions de l'EEPROM avec des "0" ****
+  for (i=0; i<=79; i++) {
+    EEPROM.put(i, 0);
+  }
+
+  // **** Enregistrement du SSID dans l'EEPROM ****
+  Serial.println("ssid envoyé:" + server.arg("ssid"));
+
+  String returnField = server.arg("ssid");
+  int fieldSize = returnField.length();
+  Serial.println("Taille de SSID" + String(fieldSize));
+
+  for (i=1 ; i<=fieldSize; i++){
+    Serial.println("Ecriture: " + returnField.substring(i-1, i));
+    EEPROM.put(EepromAddr++, returnField.substring(i-1, i));
+  }
+  EEPROM.commit();
+
+
+  
+
+  server.send(200, "text/html", "<h1>Parametres WIFI enregistres dans la ROM !</H1><P>Merci de relancer le module recepteur - <P><B>Methode:</B><BR>1) PowerOFF<BR>2) PowerOn");
+
+}
+
+
+void handleNotFound(){
+  server.send(404, "text/html", "<h1>#404 error: Not found !<A href=\"/\">Retour</A>");
+}
 
 // *****************************************************************************************************************************************************
 // ********************************************************************************* SETUP *************************************************************
@@ -216,29 +255,22 @@ void setup() {
 
     gp3 = 1;
 
-    /*
-    tft.setTextColor(ILI9341_WHITE);  
-    tft.setFont(&FreeSans9pt7b);
-    tft.setTextSize(1);
-    tft.getTextBounds("* Wifi setup *", 0, 0, &gbx1, &gby1, &gbw, &gbh);
-    tft.setCursor(120 - (gbw/2), 180);
-    tft.println(F("* Wifi setup *"));
-    */
 
     WiFi.mode(WIFI_AP); //Our ESP8266-12E is an AccessPoint
     WiFi.softAP("Hello_cNuma", "12345678"); // Provide the (SSID, password);
 
     tftPrintMsg(120, 200, F("*** Wifi setup ***"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
-    tftPrintMsg(120, 240, F("Attente config !"), 1, ILI9341_WHITE, &FreeSans9pt7b);
+    tftPrintMsg(120, 220, F("CONFIG"), 1, ILI9341_RED, &FreeSans9pt7b);
     tftPrintMsg(120, 260, F("SSID: Hello_cNuma"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
     tftPrintMsg(120, 280, F("pwd: 12345678"), 1, ILI9341_ORANGE, &FreeSans9pt7b);
+    tftPrintMsg(120, 300, F("@192.168.4.1"), 1, ILI9341_YELLOW, &FreeSans9pt7b);
     
     server.on("/", [] {server.send(200, "text/html", pageWifiParam);} );
+    server.on("/WifiSave", HTTP_POST, handleWifiSave);
     server.on("/contact", [] {server.send(200, "text/html", pageContact);} );
+    server.onNotFound(handleNotFound);
 
     server.begin(); // Start the HTTP Server
-    
-
 
   } else {
     // *************************************************************************************************
@@ -317,7 +349,16 @@ void setup() {
     // *******************************************************************************************************************
     // ***************************************************************************************************** Init WIFI
     yPosSetup += 20;
-    Serial.printf("Connecting to '%s'\n", wifi_ssid);
+   
+    Serial.printf("Wifi - Récup valeur dans EEPROM\n");
+    char val;
+    for (int i=0; i<=40; i++) {
+      EEPROM.get(i, val);
+      Serial.println("Val EEPROM" + val);
+      wifi_ssid += val;
+    }
+
+    Serial.printf("Wifi - Connecting to '%s'\n", wifi_ssid);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifi_ssid, wifi_password);
@@ -329,7 +370,7 @@ void setup() {
       ArduinoOTA.setPassword("123456");
       ArduinoOTA.begin();
     } else {
-      Serial.println("Connection Failed!");
+      Serial.println("Wifi - Connection Failed!");
       tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
     }
     delay(500);

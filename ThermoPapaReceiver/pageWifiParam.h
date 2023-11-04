@@ -12,43 +12,38 @@ const char pageWifiParam[] PROGMEM = R"=====(
 
   <div class="card text-center">
     <div class="card-header">
-      Config Wifi
+      <H1>Thermo Papa</H1><P><H2>Config Wifi</H2>
     </div>
 
     <div class="card-body">
 
-      <FORM METHOD=GET ACTION=majWifi>
-        <div class="row">
-          <div class="col-5">
-            Nom du réseau
-          </div>
-          <div class="col-7">
-            <input name=ssid 	type=text size=20 maxlength=40>
-          </div>
+      <form method="POST" action="/WifiSave">
+
+        <div class="form-group">
+          <label for="SSID">SSID</label>
+          <input type="text" class="form-control" id="ssid" name="ssid" aria-describedby="ssidHelp" placeholder="SSID">
+          <small id="ssidHelp" class="form-text text-muted">Entrer le SSID du réseau local (max 40 caractères)</small>
         </div>
 
-        <div class="row">
-            <div class="col-5">
-              Mot de passe	
-            </div>
-            <div class="col-7">
-              <input name=pwd 	type=text size=20 maxlength=40>
-            </div>
+        <div class="form-group">
+          <label for="pwd">Password</label>
+          <input type="text" class="form-control" id="pwd" name="pwd" aria-describedby="pwdHelp" placeholder="Password">
+          <small id="pwdHelp" class="form-text text-muted">Entrer le mot de passe associé au SSID du réseau local (max 40 caractères)</small>
         </div>
 
-        <div class="row">
-          <div class="col-12">
-            <a href="" class="btn btn-primary">Sauvegarder la config.</a>
-          </div>
-        </div>
+        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+      </form>
 
-      </FORM>
+
 
       <div class="card-footer text-body-secondary">
-        cNuma - 2023-11
+        <A href="/contact">cNuma - 2023-11</A>
       </div>
 
     </div>
   </div>
 
-</body></html>)=====";9htFJ�
+</body>
+</HTML>
+
+)=====";
