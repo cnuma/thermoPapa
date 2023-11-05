@@ -174,6 +174,14 @@ void tftPrintMsg(int xPos, int yPos, String chaine, uint8_t texteTaille, uint16_
 }
 
 
+void eeprom_commit() {
+  if (EEPROM.commit()) {
+    Serial.println("EEPROM successfully committed!");
+  } else {
+    Serial.println("ERROR! EEPROM commit failed!");
+  }
+}
+
 void handleWifiSave() {
   if( ! server.hasArg("ssid") || ! server.hasArg("pwd") || server.arg("ssid") == NULL || server.arg("pwd") == NULL) {
     server.send(400, "text/plain", "400: Invalid Request - parametre NULL ou manquant !");         // The request is invalid, so send HTTP status 400
@@ -181,7 +189,7 @@ void handleWifiSave() {
   }
 
   
-  int i;
+  uint8_t i;
 
   Serial.println("Clear des zones de l EEPROM");
   // **** Reset les 80 positions de l'EEPROM avec des "0" ****
@@ -189,22 +197,105 @@ void handleWifiSave() {
     EEPROM.write(i, 0);
   }
   Serial.println("Commit !");
-  EEPROM.commit();
+  eeprom_commit();
 
 
   // **** Enregistrement du SSID dans l'EEPROM ****
-  String returnField;
+  String valeurRetour;
+  //uint8_t val;
+  char tmp;
+  
   Serial.println("ssid envoyé:" + server.arg("ssid"));
-  returnField = server.arg("ssid");
-  EEPROM.put(0, returnField);
-  EEPROM.commit();
+ /* valeurRetour = server.arg("ssid");
+  Serial.printf("valeurRetour: %s\n", valeurRetour);
+  tmp = valeurRetour.charAt(0);
+  Serial.printf("tmp: %c\n", tmp);
+  val = atoi(tmp);
+  Serial.printf("val: %d\n", val);
+*/
 
+  // ************* Sauvegarder du SSID *******
+  i=0;
+  valeurRetour = server.arg("ssid");
+  Serial.printf("Début Enr SSID dans EEPROM valeurRetour: %s\n",valeurRetour);
+  //while (valeurRetour.charAt(i) != 0) {
+  //while(i<=39 && val!=0 ) {
+  while(i<=39 ) {
+    tmp = valeurRetour.charAt(i);
+    //val = tmp.toInt();
+    Serial.printf("i: %i\t tmpdC: %c\t tmpD: %d\ttmpX: %X\n", i, tmp, tmp, tmp);
+    EEPROM.write(i, valeurRetour.charAt(i));
+    delay(50);
+    i++;
+  }
+  //EEPROM.put(0, returnField);
+  eeprom_commit();
+  delay(500);
+
+  // *************** Sauvegarde du PWD ****
+  i=0;
+  valeurRetour = server.arg("pwd");
+  Serial.printf("Début Enr PWD dans EEPROM valeurRetour: %s\n",valeurRetour);
+  //while (valeurRetour.charAt(i) != 0) {
+  //while(i<=39 && val!=0 ) {
+  while(i<=39 ) {
+    tmp = valeurRetour.charAt(i);
+    //val = tmp.toInt();
+    Serial.printf("i: %i\t i+40: %d \t tmpdC: %c\t tmpD: %d\ttmpX: %X\n", i, i+40, tmp, tmp, tmp);
+    EEPROM.write(i+40, valeurRetour.charAt(i));
+    delay(50);
+    i++;
+  }
+  //EEPROM.put(0, returnField);
+  eeprom_commit();
+  delay(500);
+
+
+  Serial.printf("Wifi - Récup SSID: ");
+    char val=-1;
+    i=0;
+    while (i<=39 && val != 0) {
+      val = EEPROM.read(i);
+      Serial.print("i:" + String(i) + " - Val EEPROM :" + val + " HEX: ");
+      Serial.println(val, HEX);
+      if (val != 0) {
+        wifi_ssid += val;
+      }
+      
+      i++; 
+    }
+    Serial.println(wifi_ssid);
+
+    Serial.printf("Wifi - Récup SSID: ");
+    val=-1;
+    i=40;
+    while (i<=79 && val != 0) {
+      val = EEPROM.read(i);
+      Serial.print("i:" + String(i) + " - Val EEPROM :" + val + " HEX: ");
+      Serial.println(val, HEX);
+      if (val != 0) {
+        wifi_password += val;
+      }
+      
+      i++; 
+    }
+    Serial.println(wifi_password);
+
+
+  EEPROM.end();
+
+
+/*
   Serial.println("pwd envoyé:" + server.arg("pwd"));
-  returnField = server.arg("pwd");
-  EEPROM.put(39, returnField);
-  EEPROM.commit();
+  valeurRetour = server.arg("pwd");
+  //EEPROM.put(40, valeurRetour);
+  //eeprom_commit();
+  EEPROM.end();
+  delay(500);
+*/
 
-  server.send(200, "text/html", "<h1>Parametres WIFI enregistres dans la ROM !</H1><P>Merci de relancer le module recepteur - <P><B>Methode:</B><BR>1) PowerOFF<BR>2) PowerOn");
+
+  server.send(200, "text/html", "<h1>Parametres WIFI enregistres dans la ROM !</H1><HR><P><B>SSID:</B>"+wifi_ssid+"<B><BR>PWD:</B>"+wifi_password+"<HR><P>Merci de relancer le module recepteur - <P><B>Methode:</B><BR>1) PowerOFF<BR>2) PowerOn");
 
 }
 
@@ -219,11 +310,13 @@ void setup() {
   Serial.begin(115200);
   Serial.println("ThermoPAPA - Module affichage"); 
 
+  EEPROM.begin(EEPROM_SIZE);
+  delay(500);
 
   pinMode(3, INPUT);
   delay(200);
 
-  EEPROM.begin(EEPROM_SIZE);
+  
   
  
   tft.begin();
@@ -352,34 +445,40 @@ void setup() {
    
     Serial.printf("Wifi - Récup valeur dans EEPROM\n");
 
-/*    
+    
     Serial.printf("Wifi - Récup SSID: ");
     char val=-1;
     int i=0;
     while (i<=39 && val != 0) {
       val = EEPROM.read(i);
-      Serial.println("i:" + String(i) + " - Val EEPROM :" + val);
-      wifi_ssid += val;
+      Serial.print("i:" + String(i) + " - Val EEPROM :" + val + " HEX: ");
+      Serial.println(val, HEX);
+      if (val != 0) {
+        wifi_ssid += val;
+      }
+      
       i++; 
     }
     Serial.println(wifi_ssid);
 
-
-    Serial.print("Wifi - Récup pwd: ");
+    Serial.printf("Wifi - Récup SSID: ");
     val=-1;
     i=40;
     while (i<=79 && val != 0) {
       val = EEPROM.read(i);
-      Serial.println("i:" + String(i) + " - Val EEPROM :" + val);
-      wifi_ssid += val;
+      Serial.print("i:" + String(i) + " - Val EEPROM :" + val + " HEX: ");
+      Serial.println(val, HEX);
+      if (val != 0) {
+        wifi_password += val;
+      }
+      
       i++; 
     }
     Serial.println(wifi_password);
-*/    
 
 
-    EEPROM.get(0, wifi_ssid);
-    //EEPROM.get(39, wifi_password);
+//    EEPROM.get(0, wifi_ssid);
+    //EEPROM.get(40, wifi_password);
 
     Serial.printf("Wifi - Connecting to '%s' - '%s'\n", wifi_ssid, wifi_password);
 
