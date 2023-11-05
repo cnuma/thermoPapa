@@ -119,12 +119,6 @@ bool gp3=0;
 
 ESP8266WebServer server(80);
 
-
-
-
-
-//const char * wifi_ssid = "Freebox-manu"; 12
-//const char * wifi_password = "nugor5-subduxi-factitando37-indemne";35
 String wifi_ssid;
 String wifi_password;
 
