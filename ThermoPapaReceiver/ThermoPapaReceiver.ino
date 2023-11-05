@@ -53,6 +53,8 @@ TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European 
 TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Time
 Timezone CE(CEST, CET);
 
+const char* ntpServer = "europe.pool.ntp.org";
+
 
 
 
@@ -135,7 +137,7 @@ static tm getDateTimeByParams(long time){
     newtime = localtime(&tim);
     return *newtime;
 }
-/**
+/** 
  * Input tm time format and return String with format pattern
  * by Renzo Mischianti <www.mischianti.org>
  */
@@ -497,6 +499,7 @@ void setup() {
     yPosSetup += 20; 
     timeClient.begin();
     delay ( 1000 );
+    /*
     if (timeClient.update()){
       Serial.print ( "Adjust local clock" );
       tftPrintMsg(200, yPosSetup, F("Ok !"), 1, ILI9341_GREEN, &FreeSans9pt7b);
@@ -507,6 +510,18 @@ void setup() {
       tftPrintMsg(200, yPosSetup, F("Failed !"), 1, ILI9341_RED, &FreeSans9pt7b);
     }
     delay(500);
+*/
+
+    configTzTime("CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00", ntpServer);
+    delay(1000);
+
+    time_t timestamp = time( NULL );
+    char buffer[80];
+    struct tm *pTime = localtime(&timestamp );
+    strftime(buffer, 80, "%H:%M:%S", pTime);
+    Serial.println(buffer);
+
+    tftPrintMsg(200, yPosSetup, buffer, 1, ILI9341_WHITE, &FreeSans9pt7b);
 
 
     tftPrintMsg(120, 310, F("Fin setup"), 1, ILI9341_WHITE, &FreeSans9pt7b);
@@ -537,16 +552,32 @@ void loop(void) {
     ArduinoOTA.handle();
 
     //timeClient.update();
-    Serial.println("Time: " + getEpochStringByParams(CE.toLocal(now())));
+    //Serial.println("Time: " + getEpochStringByParams(CE.toLocal(now())));
+    //Serial.printf("Hours: %d:%d:%d\n", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
+    time_t timestamp = time( NULL );
+    char buffer[80];
+    char bufferOld[80];
+    struct tm *pTime = localtime(&timestamp );
+    strftime(buffer, 80, "%H:%M", pTime);
+    Serial.println(buffer);
+
+    if (strcmp(buffer,bufferOld) != 0) {
+      tft.fillRoundRect(120,280, 120, 40, 8, ILI9341_BLUE);
+      tftPrintMsg(180, 310, buffer, 1, ILI9341_WHITE, &FreeMonoBold18pt7b);
+      memcpy(bufferOld, buffer, 80);
+    }
+    
+
 
     // ***** Lecture des données de openMeteo ******
-    if (awaitingArrivals) {
+/*    if (awaitingArrivals) {
       if (!arrivalsRequested) {
+        Serial.println("Arrivée données méteo");
         arrivalsRequested = true;
         getArrivals();
       }
     }
-
+*/
     //Serial.println("Lora - ParsePaquet");
     int tailleDuPaquet = LoRa.parsePacket(); 
     entrant = "";
