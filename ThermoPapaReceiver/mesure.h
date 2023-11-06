@@ -23,6 +23,10 @@ class mesure {
       int   m_MesureMinValue;
       int   m_MesureMaxValue;
 
+      int   m_MesureMax;
+      int   m_MesureMin;
+      
+
       int   m_GraphHeight = 50;
 
       //const GFXfont   &m_fontValue;

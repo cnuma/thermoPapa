@@ -55,6 +55,11 @@ void mesure::AddHistoryValue(float value){
 
   for (i=NbrPointsHistoriqueMesure - 1; i>=1; i--) {
     m_fullMesure[i] = m_fullMesure[i-1];
+    if (m_fullMesure[i] >= m_MesureMax) {
+      m_MesureMax = m_fullMesure[i];
+    } else if (m_fullMesure[i] < m_MesureMin) {
+      m_MesureMin = m_fullMesure[i];
+    }
   }
 
   m_fullMesure[0] = value;
@@ -102,6 +107,7 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
   // *** Génération du "T" du graphique ***
   // *** Trace ligne horizontale ***
   Serial.println("Génération T - Horizontal");
+/*  
   if (m_MesureMinValue < 0 ) {
     m_tft.drawFastHLine(xPos, yPos - (abs(m_MesureMinValue)) , NbrPointsHistoriqueMesure, ILI9341_LIGHTGREY);
     
@@ -135,11 +141,36 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
   m_tft.print(m_MesureMaxValue);
 
 
+
+*/
+
+  if (m_MesureMin > 0 ) {
+    m_tft.drawFastHLine(xPos, yPos, NbrPointsHistoriqueMesure, ILI9341_LIGHTGREY);
+
+    m_tft.setTextColor(ILI9341_WHITE);  
+    m_tft.setTextSize(1);
+    m_tft.setFont(&Picopixel);
+    m_tft.getTextBounds("0" + m_unit, m_Xpos, m_Ypos, &gbx1, &gby1, &gbw, &gbh);
+    m_tft.setCursor(xPos - gbw - 2 , yPos + 2 );
+    m_tft.print("0");
+  } else {
+
+  }
+
+  // *** Affichage de la valeur MAX en vertical ***
+  m_tft.setTextColor(ILI9341_WHITE);  
+  m_tft.setTextSize(1);
+  m_tft.setFont(&Picopixel);
+  m_tft.getTextBounds(String(m_MesureMax) + m_unit, m_Xpos, m_Ypos, &gbx1, &gby1, &gbw, &gbh);
+  m_tft.setCursor(xPos - gbw - 2 , yPos - m_GraphHeight );
+  m_tft.print(m_MesureMax);
+
+
+  
   
   // *** Trace lignes verticale du T
-  Serial.println("Génération des T verticaux");
+  Serial.println("Génération du T - Barres verticales");
   for (i=0; i<=3; i++) {
-    //m_tft.drawLine(xPos+(NbrPointsHistoriqueMesure/4*i), yPos, xPos+(NbrPointsHistoriqueMesure/4*i), yPos - abs(m_MesureMinValue) - m_MesureMaxValue, ILI9341_MAROON);
 
     m_tft.drawFastVLine(xPos+(NbrPointsHistoriqueMesure/4*i), yPos-m_GraphHeight, m_GraphHeight, ILI9341_MAROON);
 
@@ -157,12 +188,15 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
   }
 
   // *** dessine le graphe ***
+  Serial.println("Dessine le Graph !");
   int val;
   int previousVal;
   for (i=0; i<=NbrPointsHistoriqueMesure-1;  i++){
 
     // *** MAP les valeurs stockées dans le tableau pour l'adapter au graphique ***
-    val = map(int(m_fullMesure[i]), m_MesureMinValue, m_MesureMaxValue, 0, m_GraphHeight);
+    //val = map(int(m_fullMesure[i]), m_MesureMinValue, m_MesureMaxValue, 0, m_GraphHeight);
+    Serial.println("MAP pour i=" + String (i) + " - m_fullMesure[i]=" + String(m_fullMesure[i]));
+    val = map(int(m_fullMesure[i]), m_MesureMinValue, m_MesureMax, 0, m_GraphHeight);
   
     Serial.println("Mesure: " + m_unit + " ! xpos+i: " + String(xPos+i) + " ! Val"+String(i)+ "-"+String(m_fullMesure[i])+"->"+String(val) + " ! yPos origine: " + String(yPos) + " ! PosY corrigé: " + String(yPos-val));
     if (i==0){
