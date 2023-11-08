@@ -107,7 +107,7 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
   // *** Génération du "T" du graphique ***
   // *** Trace ligne horizontale ***
   Serial.println("Génération T - Horizontal");
-/*  
+ 
   if (m_MesureMinValue < 0 ) {
     m_tft.drawFastHLine(xPos, yPos - (abs(m_MesureMinValue)) , NbrPointsHistoriqueMesure, ILI9341_LIGHTGREY);
     
@@ -142,7 +142,7 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
 
 
 
-*/
+/*
 
   if (m_MesureMin > 0 ) {
     m_tft.drawFastHLine(xPos, yPos, NbrPointsHistoriqueMesure, ILI9341_LIGHTGREY);
@@ -157,6 +157,7 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
 
   }
 
+
   // *** Affichage de la valeur MAX en vertical ***
   m_tft.setTextColor(ILI9341_WHITE);  
   m_tft.setTextSize(1);
@@ -164,7 +165,7 @@ void mesure::GraphHistoryValue(int xPos, int yPos){
   m_tft.getTextBounds(String(m_MesureMax) + m_unit, m_Xpos, m_Ypos, &gbx1, &gby1, &gbw, &gbh);
   m_tft.setCursor(xPos - gbw - 2 , yPos - m_GraphHeight );
   m_tft.print(m_MesureMax);
-
+*/
 
   
   
